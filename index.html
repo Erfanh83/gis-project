@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="fa" dir="rtl">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -9,9 +10,11 @@
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
   <script src="https://unpkg.com/@turf/turf@6.5.0/turf.min.js"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;600;700;800&display=swap"
+    rel="stylesheet" />
   <link rel="stylesheet" href="style.css" />
 </head>
+
 <body>
 
   <!-- ══════════════════ SIDEBAR ══════════════════ -->
@@ -22,14 +25,14 @@
       <div class="logo-wrap">
         <div class="logo-icon">
           <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
-            <polygon points="14,2 26,8 26,20 14,26 2,20 2,8" stroke="#00e5ff" stroke-width="1.5" fill="none"/>
-            <circle cx="14" cy="14" r="4" fill="#00e5ff"/>
-            <line x1="14" y1="2"  x2="14" y2="10" stroke="#00e5ff" stroke-width="1"/>
-            <line x1="14" y1="18" x2="14" y2="26" stroke="#00e5ff" stroke-width="1"/>
-            <line x1="2"  y1="8"  x2="9"  y2="12" stroke="#00e5ff" stroke-width="1"/>
-            <line x1="19" y1="16" x2="26" y2="20" stroke="#00e5ff" stroke-width="1"/>
-            <line x1="26" y1="8"  x2="19" y2="12" stroke="#00e5ff" stroke-width="1"/>
-            <line x1="9"  y1="16" x2="2"  y2="20" stroke="#00e5ff" stroke-width="1"/>
+            <polygon points="14,2 26,8 26,20 14,26 2,20 2,8" stroke="#00e5ff" stroke-width="1.5" fill="none" />
+            <circle cx="14" cy="14" r="4" fill="#00e5ff" />
+            <line x1="14" y1="2" x2="14" y2="10" stroke="#00e5ff" stroke-width="1" />
+            <line x1="14" y1="18" x2="14" y2="26" stroke="#00e5ff" stroke-width="1" />
+            <line x1="2" y1="8" x2="9" y2="12" stroke="#00e5ff" stroke-width="1" />
+            <line x1="19" y1="16" x2="26" y2="20" stroke="#00e5ff" stroke-width="1" />
+            <line x1="26" y1="8" x2="19" y2="12" stroke="#00e5ff" stroke-width="1" />
+            <line x1="9" y1="16" x2="2" y2="20" stroke="#00e5ff" stroke-width="1" />
           </svg>
         </div>
         <div>
@@ -43,10 +46,8 @@
     <!-- ── Geocode Search Bar ── -->
     <div class="search-section">
       <div class="search-wrap">
-        <input type="text" id="geocode-input"
-               class="geocode-input"
-               placeholder="جستجوی آدرس یا مکان… (مثال: تهران، میدان آزادی)"
-               autocomplete="off" />
+        <input type="text" id="geocode-input" class="geocode-input"
+          placeholder="جستجوی آدرس یا مکان… (مثال: تهران، میدان آزادی)" autocomplete="off" />
         <button id="geocode-btn" class="geocode-btn" title="جستجو">🔍</button>
       </div>
       <div id="geocode-results" class="geocode-results" style="display:none"></div>
@@ -55,7 +56,8 @@
     <!-- ── Instruction ── -->
     <div class="card instruction-card">
       <div class="card-icon">📍</div>
-      <p>آدرس جستجو کنید یا روی نقشه کلیک کنید. سپس <strong>دریافت داده OSM</strong> را اجرا کنید و تحلیل‌ها را انجام دهید.</p>
+      <p>آدرس جستجو کنید یا روی نقشه کلیک کنید. سپس <strong>دریافت داده OSM</strong> را اجرا کنید و تحلیل‌ها را انجام
+        دهید.</p>
     </div>
 
     <!-- ── Radius Slider ── -->
@@ -66,9 +68,8 @@
       </div>
       <div class="slider-wrap">
         <!-- dir="ltr" FIXES the RTL slider inversion bug -->
-        <input type="range" id="radius-slider" dir="ltr"
-               min="100" max="2000" value="500" step="100"
-               class="radius-slider" />
+        <input type="range" id="radius-slider" dir="ltr" min="100" max="2000" value="500" step="100"
+          class="radius-slider" />
         <!-- dir="ltr" because the slider itself is ltr; without this the ticks render 2000→100 -->
         <div class="slider-ticks" dir="ltr">
           <span>۱۰۰</span><span>۵۰۰</span><span>۱۰۰۰</span><span>۱۵۰۰</span><span>۲۰۰۰</span>
@@ -83,16 +84,16 @@
       </h3>
       <div class="select-wrap">
         <select id="category-select" class="category-select">
-          <option value="بیمارستان">🏥  بیمارستان</option>
-          <option value="داروخانه">💊  داروخانه</option>
-          <option value="نانوایی">🥖  نانوایی</option>
-          <option value="مدرسه">🏫  مدرسه</option>
-          <option value="پارک">🌳  پارک</option>
-          <option value="بانک">🏦  بانک</option>
-          <option value="سوپرمارکت">🛒  سوپرمارکت</option>
-          <option value="کتابخانه">📚  کتابخانه</option>
-          <option value="مسجد">🕌  مسجد</option>
-          <option value="ایستگاه مترو">🚇  ایستگاه مترو</option>
+          <option value="بیمارستان">🏥 بیمارستان</option>
+          <option value="داروخانه">💊 داروخانه</option>
+          <option value="نانوایی">🥖 نانوایی</option>
+          <option value="مدرسه">🏫 مدرسه</option>
+          <option value="پارک">🌳 پارک</option>
+          <option value="بانک">🏦 بانک</option>
+          <option value="سوپرمارکت">🛒 سوپرمارکت</option>
+          <option value="کتابخانه">📚 کتابخانه</option>
+          <option value="مسجد">🕌 مسجد</option>
+          <option value="ایستگاه مترو">🚇 ایستگاه مترو</option>
         </select>
         <div class="select-arrow">▾</div>
       </div>
@@ -201,20 +202,19 @@
         <svg class="gauge-svg" viewBox="0 0 200 120">
           <defs>
             <linearGradient id="gaugeGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-              <stop offset="0%"   style="stop-color:#ff4444"/>
-              <stop offset="50%"  style="stop-color:#ffaa00"/>
-              <stop offset="100%" style="stop-color:#00e676"/>
+              <stop offset="0%" style="stop-color:#ff4444" />
+              <stop offset="50%" style="stop-color:#ffaa00" />
+              <stop offset="100%" style="stop-color:#00e676" />
             </linearGradient>
           </defs>
-          <path d="M 20 100 A 80 80 0 0 1 180 100" fill="none"
-                stroke="#1e2d3d" stroke-width="16" stroke-linecap="round"/>
-          <path id="gauge-fill" d="M 20 100 A 80 80 0 0 1 180 100" fill="none"
-                stroke="url(#gaugeGrad)" stroke-width="16" stroke-linecap="round"
-                stroke-dasharray="0 251" style="transition:stroke-dasharray 0.8s ease"/>
-          <circle id="gauge-dot" cx="20" cy="100" r="8" fill="#00e5ff"
-                  style="transition:cx 0.8s ease, cy 0.8s ease"/>
-          <text x="14"  y="116" fill="#607d8b" font-size="10" font-family="Vazirmatn">۰</text>
-          <text x="95"  y="20"  fill="#607d8b" font-size="10" font-family="Vazirmatn" text-anchor="middle">۵۰</text>
+          <path d="M 20 100 A 80 80 0 0 1 180 100" fill="none" stroke="#1e2d3d" stroke-width="16"
+            stroke-linecap="round" />
+          <path id="gauge-fill" d="M 20 100 A 80 80 0 0 1 180 100" fill="none" stroke="url(#gaugeGrad)"
+            stroke-width="16" stroke-linecap="round" stroke-dasharray="0 251"
+            style="transition:stroke-dasharray 0.8s ease" />
+          <circle id="gauge-dot" cx="20" cy="100" r="8" fill="#00e5ff" style="transition:cx 0.8s ease, cy 0.8s ease" />
+          <text x="14" y="116" fill="#607d8b" font-size="10" font-family="Vazirmatn">۰</text>
+          <text x="95" y="20" fill="#607d8b" font-size="10" font-family="Vazirmatn" text-anchor="middle">۵۰</text>
           <text x="179" y="116" fill="#607d8b" font-size="10" font-family="Vazirmatn">۱۰۰</text>
         </svg>
         <div class="gauge-value" id="gauge-number">۰</div>
@@ -248,7 +248,9 @@
           </div>
           <span class="breakdown-val" id="bv-volume">۰</span>
         </div>
-        <div id="wpi-penalty-note" style="display:none;font-size:10px;color:#ffab40;text-align:left;margin-top:2px;padding-right:4px;direction:rtl;"></div>
+        <div id="wpi-penalty-note"
+          style="display:none;font-size:10px;color:#ffab40;text-align:left;margin-top:2px;padding-right:4px;direction:rtl;">
+        </div>
       </div>
 
       <!-- Diversity Bars -->
@@ -300,8 +302,7 @@
         <span class="stack-pill">Overpass API</span>
         <span class="stack-pill">Nominatim</span>
       </div>
-      <div class="footer-meta">پروژه GIS دانشگاهی · ۱۴۰۴</div>
-    </footer>
+      <div class="footer-meta">پروژه عملی درس تحلیل‌های مکانی | استاد: دکتر بهرامیان</div>
   </aside>
 
   <!-- ══════════════════ MAP ══════════════════ -->
@@ -311,7 +312,12 @@
 
     <!-- Loading overlay -->
     <div id="loading" class="loading-overlay" style="display:none">
-      <div class="loading-ring"><div></div><div></div><div></div><div></div></div>
+      <div class="loading-ring">
+        <div></div>
+        <div></div>
+        <div></div>
+        <div></div>
+      </div>
       <p id="loading-msg">در حال دریافت داده از OpenStreetMap…</p>
     </div>
 
@@ -325,4 +331,5 @@
 
   <script src="script.js"></script>
 </body>
+
 </html>
