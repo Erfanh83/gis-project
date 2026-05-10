@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>محله هوشمند | تحلیل دسترسی GIS</title>
+
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
+  <script src="https://unpkg.com/@turf/turf@6.5.0/turf.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- ══════════════════ SIDEBAR ══════════════════ -->
+  <aside id="sidebar" class="sidebar">
+
+    <!-- ── Header ── -->
+    <div class="sidebar-header">
+      <div class="logo-wrap">
+        <div class="logo-icon">
+          <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+            <polygon points="14,2 26,8 26,20 14,26 2,20 2,8" stroke="#00e5ff" stroke-width="1.5" fill="none"/>
+            <circle cx="14" cy="14" r="4" fill="#00e5ff"/>
+            <line x1="14" y1="2"  x2="14" y2="10" stroke="#00e5ff" stroke-width="1"/>
+            <line x1="14" y1="18" x2="14" y2="26" stroke="#00e5ff" stroke-width="1"/>
+            <line x1="2"  y1="8"  x2="9"  y2="12" stroke="#00e5ff" stroke-width="1"/>
+            <line x1="19" y1="16" x2="26" y2="20" stroke="#00e5ff" stroke-width="1"/>
+            <line x1="26" y1="8"  x2="19" y2="12" stroke="#00e5ff" stroke-width="1"/>
+            <line x1="9"  y1="16" x2="2"  y2="20" stroke="#00e5ff" stroke-width="1"/>
+          </svg>
+        </div>
+        <div>
+          <h1 class="app-title">محله هوشمند</h1>
+          <p class="app-subtitle">سامانه تحلیل دسترسی GIS · داده زنده OSM</p>
+        </div>
+      </div>
+      <button id="sidebar-toggle" class="sidebar-toggle" title="بستن پانل">&#x276E;</button>
+    </div>
+
+    <!-- ── Geocode Search Bar ── -->
+    <div class="search-section">
+      <div class="search-wrap">
+        <input type="text" id="geocode-input"
+               class="geocode-input"
+               placeholder="جستجوی آدرس یا مکان… (مثال: تهران، میدان آزادی)"
+               autocomplete="off" />
+        <button id="geocode-btn" class="geocode-btn" title="جستجو">🔍</button>
+      </div>
+      <div id="geocode-results" class="geocode-results" style="display:none"></div>
+    </div>
+
+    <!-- ── Instruction ── -->
+    <div class="card instruction-card">
+      <div class="card-icon">📍</div>
+      <p>آدرس جستجو کنید یا روی نقشه کلیک کنید. سپس <strong>دریافت داده OSM</strong> را اجرا کنید و تحلیل‌ها را انجام دهید.</p>
+    </div>
+
+    <!-- ── Radius Slider ── -->
+    <div class="section-wrap">
+      <div class="section-header-row">
+        <h3 class="section-title no-margin"><span class="s-icon">⬡</span> شعاع تحلیل</h3>
+        <div class="radius-badge" id="radius-badge">۵۰۰ متر</div>
+      </div>
+      <div class="slider-wrap">
+        <!-- dir="ltr" FIXES the RTL slider inversion bug -->
+        <input type="range" id="radius-slider" dir="ltr"
+               min="100" max="2000" value="500" step="100"
+               class="radius-slider" />
+        <!-- dir="ltr" because the slider itself is ltr; without this the ticks render 2000→100 -->
+        <div class="slider-ticks" dir="ltr">
+          <span>۱۰۰</span><span>۵۰۰</span><span>۱۰۰۰</span><span>۱۵۰۰</span><span>۲۰۰۰</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Category Selector for Proximity ── -->
+    <div class="section-wrap">
+      <h3 class="section-title no-margin" style="margin-bottom:10px">
+        <span class="s-icon">🎯</span> تحلیل نزدیک‌ترین خدمت
+      </h3>
+      <div class="select-wrap">
+        <select id="category-select" class="category-select">
+          <option value="بیمارستان">🏥  بیمارستان</option>
+          <option value="داروخانه">💊  داروخانه</option>
+          <option value="نانوایی">🥖  نانوایی</option>
+          <option value="مدرسه">🏫  مدرسه</option>
+          <option value="پارک">🌳  پارک</option>
+          <option value="بانک">🏦  بانک</option>
+          <option value="سوپرمارکت">🛒  سوپرمارکت</option>
+          <option value="کتابخانه">📚  کتابخانه</option>
+          <option value="مسجد">🕌  مسجد</option>
+          <option value="ایستگاه مترو">🚇  ایستگاه مترو</option>
+        </select>
+        <div class="select-arrow">▾</div>
+      </div>
+    </div>
+
+    <!-- ── Route Display Mode Toggle ── -->
+    <div class="section-wrap">
+      <h3 class="section-title no-margin" style="margin-bottom:10px">
+        <span class="s-icon">🗺</span> حالت نمایش مسیر
+      </h3>
+      <div class="route-mode-wrap">
+        <button id="mode-straight" class="mode-btn active">
+          <span class="mode-btn-icon">📐</span>
+          <div>
+            <div class="mode-btn-title">هوایی</div>
+            <div class="mode-btn-sub">خط مستقیم</div>
+          </div>
+        </button>
+        <button id="mode-walking" class="mode-btn">
+          <span class="mode-btn-icon">🚶</span>
+          <div>
+            <div class="mode-btn-title">پیاده‌روی</div>
+            <div class="mode-btn-sub">مسیر واقعی</div>
+          </div>
+        </button>
+        <button id="mode-driving" class="mode-btn">
+          <span class="mode-btn-icon">🚗</span>
+          <div>
+            <div class="mode-btn-title">ماشین</div>
+            <div class="mode-btn-sub">مسیر جاده</div>
+          </div>
+        </button>
+      </div>
+    </div>
+
+
+    <!-- ── POI Layer Toggles ── -->
+    <div class="section-wrap">
+      <h3 class="section-title no-margin" style="margin-bottom:10px">
+        <span class="s-icon">🗂</span> لایه‌های نمایش
+      </h3>
+      <div id="layer-toggles" class="layer-toggles">
+        <!-- Populated by JS -->
+      </div>
+    </div>
+
+    <!-- ── Toolbar ── -->
+    <div class="toolbar">
+      <button id="btn-fetch" class="tool-btn tool-btn--primary" disabled>
+        <span class="btn-icon">🌐</span>
+        <span>دریافت داده از OSM</span>
+        <span class="btn-badge" id="fetch-badge">آماده</span>
+      </button>
+      <div class="toolbar-row">
+        <button id="btn-buffer" class="tool-btn tool-btn--half" disabled>
+          <span class="btn-icon">⬡</span><span>تحلیل بافر</span>
+        </button>
+        <button id="btn-nearest" class="tool-btn tool-btn--half" disabled>
+          <span class="btn-icon">🎯</span><span>نزدیک‌ترین</span>
+        </button>
+      </div>
+      <div class="toolbar-row">
+        <button id="btn-heatmap" class="tool-btn tool-btn--half" disabled>
+          <span class="btn-icon">🌡</span><span>نقشه حرارتی</span>
+        </button>
+        <button id="btn-export" class="tool-btn tool-btn--half tool-btn--export" disabled>
+          <span class="btn-icon">⬇</span><span>خروجی GeoJSON</span>
+        </button>
+      </div>
+      <button id="btn-clear" class="tool-btn tool-btn--danger" disabled>
+        <span class="btn-icon">✕</span><span>پاک‌سازی کامل</span>
+      </button>
+    </div>
+
+    <!-- ── Live Stats ── -->
+    <div class="stats-section">
+      <h3 class="section-title"><span class="pulse-dot"></span>آمار زنده</h3>
+      <div class="stats-grid">
+        <div class="stat-card" id="stat-pois">
+          <div class="stat-value" id="val-pois">—</div>
+          <div class="stat-label">خدمات در بافر</div>
+          <div class="stat-source">منبع: OSM زنده</div>
+        </div>
+        <div class="stat-card" id="stat-score">
+          <div class="stat-value" id="val-score">—</div>
+          <div class="stat-label">امتیاز زیست‌پذیری</div>
+          <div class="stat-source">از ۱۰۰</div>
+        </div>
+        <div class="stat-card" id="stat-nearest">
+          <div class="stat-value" id="val-nearest">—</div>
+          <div class="stat-label" id="lbl-nearest">فاصله نزدیک‌ترین</div>
+          <div class="stat-source" id="src-nearest">—</div>
+        </div>
+        <div class="stat-card" id="stat-diversity">
+          <div class="stat-value" id="val-diversity">—</div>
+          <div class="stat-label">تنوع خدمات</div>
+          <div class="stat-source">دسته‌بندی</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Score Gauge ── -->
+    <div class="gauge-section" id="gauge-wrap" style="display:none">
+      <h3 class="section-title">سنجه زیست‌پذیری</h3>
+      <div class="gauge-container">
+        <svg class="gauge-svg" viewBox="0 0 200 120">
+          <defs>
+            <linearGradient id="gaugeGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%"   style="stop-color:#ff4444"/>
+              <stop offset="50%"  style="stop-color:#ffaa00"/>
+              <stop offset="100%" style="stop-color:#00e676"/>
+            </linearGradient>
+          </defs>
+          <path d="M 20 100 A 80 80 0 0 1 180 100" fill="none"
+                stroke="#1e2d3d" stroke-width="16" stroke-linecap="round"/>
+          <path id="gauge-fill" d="M 20 100 A 80 80 0 0 1 180 100" fill="none"
+                stroke="url(#gaugeGrad)" stroke-width="16" stroke-linecap="round"
+                stroke-dasharray="0 251" style="transition:stroke-dasharray 0.8s ease"/>
+          <circle id="gauge-dot" cx="20" cy="100" r="8" fill="#00e5ff"
+                  style="transition:cx 0.8s ease, cy 0.8s ease"/>
+          <text x="14"  y="116" fill="#607d8b" font-size="10" font-family="Vazirmatn">۰</text>
+          <text x="95"  y="20"  fill="#607d8b" font-size="10" font-family="Vazirmatn" text-anchor="middle">۵۰</text>
+          <text x="179" y="116" fill="#607d8b" font-size="10" font-family="Vazirmatn">۱۰۰</text>
+        </svg>
+        <div class="gauge-value" id="gauge-number">۰</div>
+        <div class="gauge-label" id="gauge-label">—</div>
+      </div>
+
+      <!-- Score Breakdown — explains HOW the score was calculated -->
+      <div id="score-breakdown" class="score-breakdown" style="display:none">
+        <div class="breakdown-title">تفکیک امتیاز</div>
+        <!-- پوشش خدمات: چند درصد از دسته‌ها حداقل یک نمونه دارند؟ -->
+        <div class="breakdown-row">
+          <span class="breakdown-label">📊 پوشش خدمات</span>
+          <div class="breakdown-bar-wrap">
+            <div class="breakdown-bar" id="br-diversity" style="background:#69f0ae"></div>
+          </div>
+          <span class="breakdown-val" id="bv-diversity">۰٪</span>
+        </div>
+        <!-- خدمات حیاتی: بیمارستان، داروخانه، پارک، مترو چند درصد موجود است؟ -->
+        <div class="breakdown-row">
+          <span class="breakdown-label">🚨 خدمات حیاتی</span>
+          <div class="breakdown-bar-wrap">
+            <div class="breakdown-bar" id="br-count" style="background:#ff5252"></div>
+          </div>
+          <span class="breakdown-val" id="bv-count">۰٪</span>
+        </div>
+        <!-- شاخص WPI: میانگین وزنی مجاورت (= نمره نهایی) -->
+        <div class="breakdown-row">
+          <span class="breakdown-label">🎯 شاخص WPI</span>
+          <div class="breakdown-bar-wrap">
+            <div class="breakdown-bar" id="br-volume" style="background:#40c4ff"></div>
+          </div>
+          <span class="breakdown-val" id="bv-volume">۰</span>
+        </div>
+        <div id="wpi-penalty-note" style="display:none;font-size:10px;color:#ffab40;text-align:left;margin-top:2px;padding-right:4px;direction:rtl;"></div>
+      </div>
+
+      <!-- Diversity Bars -->
+      <div id="diversity-bars" class="diversity-bars"></div>
+    </div>
+
+    <!-- ── POI Breakdown ── -->
+    <div class="poi-section" id="poi-section" style="display:none">
+      <h3 class="section-title">ترکیب خدمات در بافر</h3>
+      <div id="poi-list" class="poi-list"></div>
+    </div>
+
+    <!-- ── Analysis Log ── -->
+    <div class="log-section">
+      <h3 class="section-title">گزارش تحلیل</h3>
+      <div id="log-box" class="log-box">
+        <div class="log-entry log-info">سامانه آماده است.</div>
+      </div>
+    </div>
+
+    <!-- ── Legend ── -->
+    <div class="legend-section">
+      <h3 class="section-title">راهنمای نقشه</h3>
+      <div class="legend-grid">
+        <div class="legend-item"><span class="legend-dot" style="background:#f44336"></span>بیمارستان</div>
+        <div class="legend-item"><span class="legend-dot" style="background:#18703d"></span>پارک</div>
+        <div class="legend-item"><span class="legend-dot" style="background:#40c4ff"></span>داروخانه</div>
+        <div class="legend-item"><span class="legend-dot" style="background:#ff9100"></span>نانوایی</div>
+        <div class="legend-item"><span class="legend-dot" style="background:#d500f9"></span>مدرسه</div>
+        <div class="legend-item"><span class="legend-dot" style="background:#536dfe"></span>مسجد</div>
+        <div class="legend-item"><span class="legend-dot" style="background:#1de9b6"></span>سوپرمارکت</div>
+        <div class="legend-item"><span class="legend-dot" style="background:#ffd600"></span>بانک</div>
+        <div class="legend-item"><span class="legend-dot" style="background:#ea80fc"></span>ایستگاه مترو</div>
+        <div class="legend-item"><span class="legend-dot" style="background:#75481e"></span>کتابخانه</div>
+      </div>
+    </div>
+
+    <!-- ── Footer / Credits ── -->
+    <footer class="sidebar-footer">
+      <div class="footer-credits-label">توسعه‌دهندگان</div>
+      <div class="dev-names">
+        <span class="dev-tag">محمد عرفان حمزه‌ای</span>
+        <span class="dev-tag">حسین اقدم</span>
+      </div>
+      <div class="footer-divider"></div>
+      <div class="footer-stack">
+        <span class="stack-pill">Leaflet.js</span>
+        <span class="stack-pill">Turf.js</span>
+        <span class="stack-pill">Overpass API</span>
+        <span class="stack-pill">Nominatim</span>
+      </div>
+      <div class="footer-meta">پروژه GIS دانشگاهی · ۱۴۰۴</div>
+    </footer>
+  </aside>
+
+  <!-- ══════════════════ MAP ══════════════════ -->
+  <main id="map-wrap">
+    <div id="map"></div>
+    <button id="sidebar-open" class="sidebar-open-btn" style="display:none">☰</button>
+
+    <!-- Loading overlay -->
+    <div id="loading" class="loading-overlay" style="display:none">
+      <div class="loading-ring"><div></div><div></div><div></div><div></div></div>
+      <p id="loading-msg">در حال دریافت داده از OpenStreetMap…</p>
+    </div>
+
+    <!-- Toast -->
+    <div id="api-toast" class="api-toast" style="display:none">
+      <span id="toast-icon">⚠</span>
+      <span id="toast-msg"></span>
+      <button id="toast-close">✕</button>
+    </div>
+  </main>
+
+  <script src="script.js"></script>
+</body>
+</html>
